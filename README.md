@@ -119,7 +119,3 @@ https://rosettacode.org/wiki/Luhn_test_of_credit_card_numbers
 ---
 
 *Built on a 1960 patent. Still gating every card swipe today.*
-```
-**`README.md`** — Creative, self-aware, cites the patent and PCI DSS. The opening line is the thesis of the whole project: Luhn proves form, not truth.
-
-All four cores use the identical right-to-left parity walk, so they cannot drift from each other. All four pass the six canonical vectors.
