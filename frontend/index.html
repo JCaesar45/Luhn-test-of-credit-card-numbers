@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUHN GATE — Verification Infrastructure</title>
+    <style>
+      :root {
+        --bg: #07080c;
+        --bg2: #0c0f16;
+        --ink: #e8ecf4;
+        --dim: #7a8496;
+        --gold: #d4af37;
+        --gold2: #f7e7a3;
+        --cyan: #3fe0d0;
+        --line: rgba(212, 175, 55, 0.22);
+        --glass: rgba(255, 255, 255, 0.03);
+        --shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.6;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            1200px 600px at 15% -10%,
+            rgba(212, 175, 55, 0.1),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 500px at 100% 0%,
+            rgba(63, 224, 208, 0.07),
+            transparent 55%
+          ),
+          radial-gradient(
+            700px 700px at 50% 120%,
+            rgba(212, 175, 55, 0.06),
+            transparent 60%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+      .grain {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .wrap {
+        position: relative;
+        z-index: 2;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ---------- NAV ---------- */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(14px);
+        background: rgba(7, 8, 12, 0.72);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        font-size: 13px;
+      }
+      .brand .mark {
+        width: 26px;
+        height: 26px;
+        border: 1.5px solid var(--gold);
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--gold);
+        box-shadow:
+          0 0 22px rgba(212, 175, 55, 0.35),
+          inset 0 0 12px rgba(212, 175, 55, 0.15);
+      }
+      .nav-links {
+        display: flex;
+        gap: 26px;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .nav-links a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.25s;
+      }
+      .nav-links a:hover {
+        color: var(--gold);
+      }
+      @media (max-width: 760px) {
+        .nav-links {
+          display: none;
+        }
+      }
+
+      /* ---------- HERO ---------- */
+      header {
+        padding: 96px 0 72px;
+        text-align: center;
+        position: relative;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 22px;
+        opacity: 0.9;
+      }
+      h1 {
+        font-size: clamp(38px, 7vw, 82px);
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        background: linear-gradient(
+          180deg,
+          #fff 0%,
+          var(--gold2) 55%,
+          var(--gold) 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 22px;
+      }
+      .sub {
+        max-width: 620px;
+        margin: 0 auto;
+        color: var(--dim);
+        font-size: 17px;
+      }
+      .cta-row {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 38px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 15px 30px;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 1px solid var(--gold);
+        background: transparent;
+        color: var(--gold);
+        text-decoration: none;
+        transition: all 0.28s ease;
+        display: inline-block;
+      }
+      .btn:hover {
+        background: var(--gold);
+        color: #07080c;
+        box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+      }
+      .btn.solid {
+        background: linear-gradient(180deg, var(--gold2), var(--gold));
+        color: #07080c;
+        border: none;
+      }
+      .btn.solid:hover {
+        box-shadow: 0 0 55px rgba(212, 175, 55, 0.55);
+        transform: translateY(-2px);
+      }
+
+      /* ---------- VALIDATOR ---------- */
+      .panel {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.045),
+          rgba(255, 255, 255, 0.012)
+        );
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .panel::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold),
+          transparent
+        );
+        opacity: 0.6;
+      }
+      .panel-title {
+        font-size: 12px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 22px;
+        font-family: var(--mono);
+      }
+      .input-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      input[type="text"] {
+        flex: 1;
+        min-width: 220px;
+        background: #04050a;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 17px;
+        letter-spacing: 0.12em;
+        outline: none;
+        transition:
+          border-color 0.25s,
+          box-shadow 0.25s;
+      }
+      input[type="text"]:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+      }
+      .result {
+        margin-top: 26px;
+        min-height: 56px;
+        font-family: var(--mono);
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+      .badge.ok {
+        background: rgba(63, 224, 208, 0.1);
+        color: var(--cyan);
+        border: 1px solid rgba(63, 224, 208, 0.35);
+      }
+      .badge.no {
+        background: rgba(255, 80, 80, 0.1);
+        color: #ff6b6b;
+        border: 1px solid rgba(255, 80, 80, 0.35);
+      }
+      .trace {
+        margin-top: 18px;
+        font-size: 12px;
+        color: var(--dim);
+        line-height: 1.9;
+      }
+      .trace span {
+        color: var(--gold2);
+      }
+      .tests {
+        margin-top: 30px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .t {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        background: #04050a;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 12px 14px;
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .t .pn {
+        color: var(--dim);
+      }
+      .t .st {
+        font-weight: 700;
+      }
+      .t .st.ok {
+        color: var(--cyan);
+      }
+      .t .st.no {
+        color: #ff6b6b;
+      }
+
+      /* ---------- SECTIONS ---------- */
+      section {
+        padding: 88px 0;
+      }
+      .kicker {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 16px;
+      }
+      h2 {
+        font-size: clamp(26px, 4vw, 42px);
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        margin-bottom: 18px;
+      }
+      .lede {
+        color: var(--dim);
+        max-width: 640px;
+        font-size: 16px;
+      }
+
+      .grid3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 22px;
+        margin-top: 48px;
+      }
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.035),
+          rgba(255, 255, 255, 0.008)
+        );
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 32px;
+        transition:
+          transform 0.3s,
+          border-color 0.3s,
+          box-shadow 0.3s;
+        position: relative;
+      }
+      .card:hover {
+        transform: translateY(-6px);
+        border-color: var(--gold);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+      }
+      .card h3 {
+        font-size: 19px;
+        margin-bottom: 8px;
+      }
+      .card .price {
+        font-family: var(--mono);
+        color: var(--gold2);
+        font-size: 14px;
+        margin-bottom: 18px;
+      }
+      .card ul {
+        list-style: none;
+        font-size: 14px;
+        color: var(--dim);
+        display: grid;
+        gap: 10px;
+      }
+      .card li::before {
+        content: "—";
+        color: var(--gold);
+        margin-right: 10px;
+      }
+      .card.feature {
+        border-color: var(--gold);
+        box-shadow: 0 0 60px rgba(212, 175, 55, 0.12);
+      }
+      .card .tag {
+        position: absolute;
+        top: -11px;
+        left: 32px;
+        background: var(--gold);
+        color: #07080c;
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        padding: 4px 12px;
+        border-radius: 6px;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 44px 0;
+        text-align: center;
+        color: var(--dim);
+        font-size: 12px;
+        font-family: var(--mono);
+        letter-spacing: 0.1em;
+      }
+      .fade {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s ease;
+      }
+      .fade.in {
+        opacity: 1;
+        transform: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grain"></div>
+
+    <nav>
+      <div class="nav-inner">
+        <div class="brand">
+          <span class="mark">L</span>
+          LUHN&nbsp;GATE
+        </div>
+        <div class="nav-links">
+          <a href="#verify">Verify</a>
+          <a href="#products">Products</a>
+          <a href="#readme">README</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="wrap">
+      <header>
+        <div class="eyebrow fade">Mod-10 Checksum Infrastructure</div>
+        <h1 class="fade">
+          The Gate Between
+          <br />
+          Digits and Trust
+        </h1>
+        <p class="sub fade">
+          A verification layer built on Hans Peter Luhn's 1960 checksum. Every
+          card number that enters your system passes through here first —
+          structurally validated before it ever touches a database.
+        </p>
+        <div class="cta-row fade">
+          <a href="#verify" class="btn solid">Run the Validator</a>
+          <a href="#products" class="btn">View Products</a>
+        </div>
+      </header>
+
+      <section id="verify" class="fade">
+        <div class="panel">
+          <div class="panel-title">// luhnTest(str) → boolean</div>
+          <div class="input-row">
+            <input
+              id="pan"
+              type="text"
+              placeholder="4992 7398 716"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="btn solid" id="run">Validate</button>
+          </div>
+          <div class="result" id="out"></div>
+          <div class="trace" id="trace"></div>
+
+          <div class="panel-title" style="margin-top: 36px">
+            // canonical test vectors
+          </div>
+          <div class="tests" id="tests"></div>
+        </div>
+      </section>
+
+      <section id="products">
+        <div class="kicker fade">Product Structure</div>
+        <h2 class="fade">Three Layers of Verification</h2>
+        <p class="lede fade">
+          Scoped the way real payment infrastructure is scoped — depth of
+          validation scales with transaction volume and data sensitivity.
+        </p>
+
+        <div class="grid3">
+          <div class="card fade">
+            <h3>Sandbox</h3>
+            <div class="price">FREE · 100 req/min</div>
+            <ul>
+              <li>Single-endpoint validation</li>
+              <li>Boolean result + timing metadata</li>
+              <li>Synthetic PAN ranges only</li>
+              <li>No persistence, no logs</li>
+            </ul>
+          </div>
+
+          <div class="card feature fade">
+            <span class="tag">POPULAR</span>
+            <h3>Production API</h3>
+            <div class="price">METERED · per 1k calls</div>
+            <ul>
+              <li>Batch + streaming validation</li>
+              <li>Webhook callbacks on verdict</li>
+              <li>Audit logs with truncated PAN (first 6 / last 4)</li>
+              <li>IIN range detection: Visa, MC, Amex, Discover</li>
+              <li>99.99% uptime SLA</li>
+            </ul>
+          </div>
+
+          <div class="card fade">
+            <h3>Compliance Layer</h3>
+            <div class="price">ENTERPRISE · custom</div>
+            <ul>
+              <li>Custom rule overlays atop Luhn</li>
+              <li>Tokenization service integration</li>
+              <li>Crypto-agility documentation (PCI DSS 4.0 §12.3.3)</li>
+              <li>Dedicated compliance engineering</li>
+              <li>On-prem or air-gapped deploy</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="readme">
+        <div class="kicker fade">README</div>
+        <h2 class="fade">Why This Exists</h2>
+        <p class="lede fade">
+          Luhn's checksum doesn't prove a card is real. It proves a card number
+          is
+          <em>well-formed</em>
+          — the difference between a typo and a plausible identifier. That
+          distinction saves databases from garbage and fraud teams from noise.
+          This page is a working demonstration: type any number, watch the
+          parity walk, see the mod-10 verdict.
+        </p>
+      </section>
+    </div>
+
+    <footer>
+      LUHN GATE · MOD-10 CHECKSUM INFRASTRUCTURE · BUILT ON LUHN (1960)
+    </footer>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ---- Core algorithm: walk right-to-left, track parity ---- */
+        function luhnTest(str) {
+          var clean = String(str).replace(/\s+/g, "");
+          if (!/^\d+$/.test(clean) || clean.length < 2) return false;
+
+          var sum = 0,
+            alternate = false;
+          for (var i = clean.length - 1; i >= 0; i--) {
+            var d = clean.charCodeAt(i) - 48;
+            if (alternate) {
+              d *= 2;
+              if (d > 9) d -= 9; // digit-sum of 10..18 == n-9
+            }
+            sum += d;
+            alternate = !alternate;
+          }
+          return sum % 10 === 0;
+        }
+
+        /* ---- Detailed trace for the UI ---- */
+        function luhnTrace(str) {
+          var clean = String(str).replace(/\s+/g, "");
+          var s1 = 0,
+            s2 = 0,
+            alt = false,
+            evens = [],
+            odds = [];
+          for (var i = clean.length - 1; i >= 0; i--) {
+            var d = clean.charCodeAt(i) - 48;
+            if (alt) {
+              var dd = d * 2;
+              var ds = dd > 9 ? dd - 9 : dd;
+              s2 += ds;
+              evens.push(
+                d + "×2=" + dd + (dd > 9 ? "→" + (dd - 9) : "") + "=" + ds
+              );
+            } else {
+              s1 += d;
+              odds.push(String(d));
+            }
+            alt = !alt;
+          }
+          return { s1: s1, s2: s2, total: s1 + s2, odds: odds, evens: evens };
+        }
+
+        /* ---- Wire up the validator ---- */
+        var input = document.getElementById("pan");
+        var out = document.getElementById("out");
+        var trace = document.getElementById("trace");
+        var run = document.getElementById("run");
+
+        function render() {
+          var v = input.value.trim();
+          if (!v) {
+            out.innerHTML = "";
+            trace.textContent = "";
+            return;
+          }
+          var clean = v.replace(/\s+/g, "");
+          var ok = luhnTest(v);
+
+          out.innerHTML = ok
+            ? '<span class="badge ok">✓ VALID · passes mod-10</span>'
+            : '<span class="badge no">✕ INVALID · fails mod-10</span>';
+
+          if (/^\d+$/.test(clean) && clean.length >= 2) {
+            var t = luhnTrace(v);
+            trace.innerHTML =
+              "reversed sum — odd positions (s1): <span>" +
+              t.s1 +
+              "</span><br/>" +
+              "even positions doubled, digit-summed (s2): <span>" +
+              t.s2 +
+              "</span><br/>" +
+              "s1 + s2 = <span>" +
+              t.total +
+              "</span> → " +
+              (t.total % 10 === 0 ? "ends in 0" : "ends in " + (t.total % 10));
+          } else {
+            trace.textContent =
+              "input rejected: must be 2+ digits, numeric only.";
+          }
+        }
+
+        input.addEventListener("input", render);
+        run.addEventListener("click", render);
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") render();
+        });
+
+        /* ---- Canonical test vectors ---- */
+        var vectors = [
+          ["4111111111111111", true],
+          ["4111111111111112", false],
+          ["49927398716", true],
+          ["49927398717", false],
+          ["1234567812345678", false],
+          ["1234567812345670", true]
+        ];
+
+        var testsEl = document.getElementById("tests");
+        vectors.forEach(function (v) {
+          var got = luhnTest(v[0]);
+          var pass = got === v[1];
+          var row = document.createElement("div");
+          row.className = "t";
+          row.innerHTML =
+            '<span class="pn">' +
+            v[0] +
+            "</span>" +
+            '<span class="st ' +
+            (pass ? "ok" : "no") +
+            '">' +
+            (pass ? "PASS" : "FAIL") +
+            "</span>";
+          testsEl.appendChild(row);
+        });
+
+        /* ---- Scroll reveal ---- */
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (en) {
+              if (en.isIntersecting) {
+                en.target.classList.add("in");
+                io.unobserve(en.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+        document.querySelectorAll(".fade").forEach(function (el) {
+          io.observe(el);
+        });
+      })();
+    </script>
+  </body>
+</html>
